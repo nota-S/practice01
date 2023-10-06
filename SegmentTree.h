@@ -1,3 +1,5 @@
+#include<cstdio>
+
 template <class T>
 class SegmentTree_sum
 {
@@ -7,7 +9,7 @@ private:
     T value, lazy;
     node *left, *right;
     node(T z):value(z), lazy(0), left(nullptr), right(nullptr){}
-  }root;
+  }*root;
   int L, R;
   T quaryxy(int ll, int rr, int xx, int yy, node *p)
   {
@@ -47,46 +49,52 @@ private:
       IntervalInc(mid + 1, rr, mid + 1, yy, tar, p -> right);
     }
   }
-  T IntervalMod(int ll, int rr, int xx, int yy, T tar, node *p)
+  T IntervalMod(int ll, int rr, int xx, int yy, T tar, T tot, node *p)
   {
     if(ll == xx && rr == yy)
     {
-      T ans = tar * (yy - xx + 1) - p -> value;
+      T ans = tar * (yy - xx + 1) - p -> value - tot * (yy - xx + 1);
       p -> value = tar * (yy - xx + 1);
-      p -> lazy = 0;
+      p -> lazy = tar;
+      Del(p -> left);
+      Del(p -> right);
       return ans;
     }
     int mid = (ll + rr) >> 1;
-    T u = p -> lazy;
+    T u = p -> lazy, res = 0;
+    tot += u;
     p -> lazy = 0;
     if(mid < xx)
     {
       if(u != 0 && p -> left == nullptr)p -> left = new node(0);
       if(p -> right == nullptr)p -> right = new node(0);
       if(u != 0)IntervalInc(ll, mid, ll, mid, u, p -> left);
-      p -> value += IntervalMod(mid + 1, rr, xx, yy, tar, p -> right);
+      res = IntervalMod(mid + 1, rr, xx, yy, tar, tot, p -> right);
     }
     else if(mid >= yy)
     {
       if(u != 0 && p -> right == nullptr)p -> right = new node(0);
       if(p -> left == nullptr)p -> left = new node(0);
       if(u != 0)IntervalInc(mid + 1, rr, mid + 1, rr, u, p -> right);
-      p -> value += IntervalMod(ll, mid, xx, yy, tar, p -> left);
+      res = IntervalMod(ll, mid, xx, yy, tar, tot, p -> left);
     }
     else
     {
       if(p -> left == nullptr)p -> left = new node(0);
-      if(p -> right == nullptr)p -> right = new node();
+      if(p -> right == nullptr)p -> right = new node(0);
       if(u != 0)
       {
-        if(xx > ll)IntervalInc(ll, mid, ll, xx - 1, u, p -> left);
-        if(yy < rr)IntervalInc(mid + 1, yy + 1, rr, u, p -> right);
+        if(ll < xx)IntervalInc(ll, mid, ll, xx - 1, u, p -> left);
+        if(rr > yy)IntervalInc(mid + 1, rr, yy + 1, rr, u, p -> right);
       }
-      p -> value += IntervalMod(ll, mid, xx, mid, tar, p -> left) + IntervalMode(mid + 1, rr, mid + 1, yy, tar, p -> right);
+      res = IntervalMod(ll, mid, xx, mid, tar, tot, p -> left) + IntervalMod(mid + 1, rr, mid + 1, yy, tar, tot, p -> right);
     }
+    p -> value += res;
+    return res;
   }
   void Del(node *p)
   {
+    if(p == nullptr)return;
     if(p -> left != nullptr)Del(p -> left);
     if(p -> right != nullptr)Del(p -> right);
     delete p;
@@ -106,7 +114,7 @@ public:
   }
   void Modxy(int x, int y, T tar)
   {
-    IntervalMod(L, R, x, y, tar, root);
+    IntervalMod(L, R, x, y, tar, 0, root);
   }
   void Increase(int x, int y, T tar)
   {
